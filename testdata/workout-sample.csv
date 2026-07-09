@@ -1,0 +1,10 @@
+Workout,Exercise,Sets,Reps,Weight,WorkTime,RestSet,RestAfter,Note
+Test · Quick run,Rep Based Exercise,2,5,10,0,8,10,Tap Done to advance
+Test · Quick run,Timed Exercise,2,,,15,8,10,15s work timer
+Test · Quick run,Pyramid Reps,3,"8,6,4",12.5,0,8,10,Reps drop each set
+Test · Edge cases,Max Reps No Weight,2,max,,0,6,8,Short rest — no voice warmup
+Test · Edge cases,Single Set,1,12,7.5,0,30,5,Only one set
+Test · Edge cases,Zero Rest Between Sets,3,10,5,0,0,10,Jumps straight to next set
+Test · Edge cases,Very Long Exercise Name For Layout Checking,2,8,20,0,8,10,"Note with, a comma and ""quotes"""
+Test · Long session,Many Sets,6,8,15,0,8,60,Six plates in the progress row
+Test · Long session,Final Exercise,2,10,,0,8,0,No rest after — ends workout

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Workout Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #15171c; --surface: #1e222a; --surface2: #262b35; --line: #333a47;
+  --ink: #f1efe9; --ink-dim: #9aa3b2;
+  --work: #e2493b; --rest: #4f8fd9; --go: #3ec97e; --amber: #f0a832;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh;
+  background: radial-gradient(1200px 500px at 50% -10%, #1c2027 0%, var(--bg) 60%);
+  color: var(--ink);
+  font-family: 'Barlow', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.shell { max-width: 560px; margin: 0 auto; padding: 20px 16px 40px; }
+.display { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; }
+.eyebrow {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 13px;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--ink-dim); font-weight: 600;
+}
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
+.card-title { font-family:'Barlow Condensed'; font-size: 28px; font-weight: 700; line-height: 1; }
+.card-sub { color: var(--ink-dim); font-size: 14px; margin-top: 3px; }
+.btn {
+  border: none; cursor: pointer; border-radius: 12px;
+  font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  transition: transform .08s ease;
+}
+.btn:active { transform: scale(.97); }
+.btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn-start { background: var(--go); color: #0c1510; font-size: 18px; padding: 12px 22px; }
+.btn-ghost { background: transparent; color: var(--ink-dim); border: 1px solid var(--line); font-size: 15px; padding: 11px 16px; }
+.btn-ghost:hover { color: var(--ink); }
+.btn-ghost.on { color: var(--go); border-color: var(--go); }
+.band { border-radius: 20px; padding: 26px 20px 22px; text-align: center; border: 1px solid var(--line); }
+.band.work { background: linear-gradient(180deg, rgba(226,73,59,.16), rgba(226,73,59,.05)); border-color: rgba(226,73,59,.45); }
+.band.rest { background: linear-gradient(180deg, rgba(79,143,217,.16), rgba(79,143,217,.05)); border-color: rgba(79,143,217,.45); }
+.band.done { background: linear-gradient(180deg, rgba(62,201,126,.16), rgba(62,201,126,.05)); border-color: rgba(62,201,126,.5); }
+.exname { font-family:'Barlow Condensed'; font-size: 40px; font-weight: 700; line-height: 1.02; margin-top: 10px; }
+.timer { font-family:'Barlow Condensed'; font-size: 84px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; margin-top: 14px; }
+.stat-row { display: flex; justify-content: center; gap: 28px; margin-top: 14px; }
+.stat { text-align: center; }
+.stat b { font-family:'Barlow Condensed'; font-size: 30px; font-weight: 700; display: block; line-height: 1; }
+.stat span { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); }
+.plates { display: flex; justify-content: center; gap: 10px; margin: 16px 0 4px; }
+.plate {
+  width: 26px; height: 26px; border-radius: 50%; border: 4px solid var(--line);
+  background: radial-gradient(circle at center, var(--bg) 0 30%, transparent 31%);
+}
+.plate.donep { border-color: var(--go); }
+.plate.current { border-color: var(--amber); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@media (prefers-reduced-motion: reduce) { .plate.current { animation: none; } }
+.donebtn { width: 100%; margin-top: 18px; padding: 20px; font-size: 24px; background: var(--work); color: #fff; }
+.skiprest { width: 100%; margin-top: 18px; padding: 16px; font-size: 18px; background: var(--rest); color: #fff; }
+.controls { display: flex; gap: 10px; margin-top: 14px; }
+.controls .btn { flex: 1; padding: 14px 0; font-size: 16px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 10px; }
+.note { font-size: 14px; color: var(--amber); margin-top: 8px; }
+.input {
+  width: 100%; background: var(--surface2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; font-size: 15px; font-family: inherit;
+}
+.input:focus { outline: 2px solid var(--amber); outline-offset: 1px; border-color: transparent; }
+.help { font-size: 14px; color: var(--ink-dim); line-height: 1.6; }
+.help ol { padding-left: 20px; margin: 8px 0; }
+.err { color: var(--work); font-size: 14px; margin-top: 10px; }
+.muted { color: var(--ink-dim); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="shell" id="app"></div>
+
+<script src="workout-engine.js"></script>
+<script>
+/* =============================================================
+   Workout Player — reads program from a published Google Sheet
+   Sheet columns (row 1 headers, case-insensitive):
+   Workout, Subtitle, Exercise, Sets, Reps, Weight, WorkTime,
+   RestSet, RestAfter, Note
+   CSV parsing + workout building live in workout-engine.js so
+   they can be unit tested without a browser.
+   ============================================================= */
+
+const { esc, fmt, repsFor, estMin, parseCSV, rowsToWorkouts } = WorkoutEngine;
+
+const $app = document.getElementById("app");
+const LS_URL = "wp-sheet-url";
+const LS_SOUND = "wp-sound";
+const LS_CACHE = "wp-cache";
+
+let state = {
+  view: "setup",           // setup | home | play
+  workouts: [],
+  fetchedAt: null,
+  error: "",
+  loading: false,
+  sound: JSON.parse(localStorage.getItem(LS_SOUND) || '{"beeps":true,"voice":true}'),
+  // player
+  wIdx: 0, exIdx: 0, setIdx: 0, phase: "work", remaining: 0, running: true,
+};
+let tickIv = null, lastBeep = null, spokeNext = false, wakeLock = null;
+
+/* ---------- audio ---------- */
+let audioCtx = null;
+function beep(freq = 880, dur = 0.12, vol = 0.25) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+function speak(text) {
+  try {
+    if (!window.speechSynthesis || !state.sound.voice) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US"; u.rate = 1.0;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+/* ---------- fetch ---------- */
+async function loadSheet(url) {
+  state.loading = true; state.error = ""; render();
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    if (text.trim().startsWith("<")) throw new Error("Got a web page instead of CSV — make sure you copied the 'Publish to web' CSV link.");
+    state.workouts = rowsToWorkouts(parseCSV(text));
+    state.fetchedAt = new Date();
+    localStorage.setItem(LS_URL, url);
+    localStorage.setItem(LS_CACHE, JSON.stringify(state.workouts));
+    state.view = "home";
+  } catch (e) {
+    state.error = "Couldn't load the sheet: " + e.message;
+    // fall back to cached copy if we have one
+    const cached = localStorage.getItem(LS_CACHE);
+    if (cached && state.workouts.length === 0) {
+      try {
+        state.workouts = JSON.parse(cached);
+        state.error += " Showing last cached version.";
+        state.view = "home";
+      } catch (e2) {}
+    }
+  }
+  state.loading = false;
+  render();
+}
+
+/* ---------- helpers ---------- */
+const curW = () => state.workouts[state.wIdx];
+const curE = () => curW() && curW().exercises[state.exIdx];
+
+/* ---------- player engine ---------- */
+function enterPhase() {
+  const e = curE(); if (!e) return;
+  lastBeep = null; spokeNext = false;
+  if (state.phase === "work" && e.workTime > 0) state.remaining = e.workTime;
+  else if (state.phase === "rest") {
+    const last = state.setIdx >= e.sets - 1;
+    state.remaining = last ? e.restAfter : e.restSet;
+  } else state.remaining = 0;
+
+  if (state.phase === "work") {
+    const w = parseFloat(e.weight);
+    speak(e.name + ". Set " + (state.setIdx + 1) + " of " + e.sets + ". " +
+      repsFor(e.reps, state.setIdx) + " reps" + (w > 0 ? ", " + w + " kilos." : "."));
+  } else if (state.phase === "rest") {
+    speak("Rest, " + state.remaining + " seconds.");
+  } else if (state.phase === "done") {
+    speak("Workout complete. Well done!");
+  }
+  restartTick();
+}
+
+function restartTick() {
+  clearInterval(tickIv);
+  const e = curE();
+  const timed = state.phase === "rest" || (state.phase === "work" && e && e.workTime > 0);
+  if (!state.running || !timed) return;
+  tickIv = setInterval(() => {
+    state.remaining -= 0.25;
+    const whole = Math.ceil(state.remaining);
+    if (state.phase === "rest" && whole === 7 && !spokeNext) {
+      spokeNext = true;
+      const ex = curE(), last = state.setIdx >= ex.sets - 1;
+      if (!last) speak("Get ready. " + ex.name + ", set " + (state.setIdx + 2) + ".");
+      else {
+        const nx = curW().exercises[state.exIdx + 1];
+        if (nx) speak("Get ready. Next exercise: " + nx.name + ".");
+      }
+    }
+    const beepFrom = state.phase === "rest" ? 5 : 3;
+    if (whole <= beepFrom && whole >= 1 && lastBeep !== whole) {
+      lastBeep = whole;
+      if (state.sound.beeps) beep(880, 0.1);
+    }
+    if (state.remaining <= 0) {
+      if (state.sound.beeps) beep(1320, 0.35, 0.3);
+      clearInterval(tickIv);
+      advance();
+      return;
+    }
+    const t = document.getElementById("timer");
+    if (t) t.textContent = fmt(state.remaining);
+  }, 250);
+}
+
+function advance() {
+  const w = curW(), e = curE(); if (!e) return;
+  const lastSet = state.setIdx >= e.sets - 1;
+  const lastEx = state.exIdx >= w.exercises.length - 1;
+  if (state.phase === "work") {
+    if (lastSet && lastEx) state.phase = "done";
+    else if ((lastSet ? e.restAfter : e.restSet) > 0) state.phase = "rest";
+    else nextSet(lastSet);
+  } else if (state.phase === "rest") {
+    nextSet(lastSet);
+  }
+  if (state.phase !== "done") enterPhase(); else { clearInterval(tickIv); speak("Workout complete. Well done!"); }
+  render();
+}
+function nextSet(lastSet) {
+  if (lastSet) { state.exIdx++; state.setIdx = 0; } else state.setIdx++;
+  state.phase = "work";
+}
+function goBack() {
+  const w = curW();
+  if (state.phase === "rest" || state.phase === "done") state.phase = "work";
+  else if (state.setIdx > 0) state.setIdx--;
+  else if (state.exIdx > 0) { state.exIdx--; state.setIdx = w.exercises[state.exIdx].sets - 1; }
+  enterPhase(); render();
+}
+function skip() { advance(); }
+function togglePause() {
+  state.running = !state.running;
+  if (state.running) restartTick(); else clearInterval(tickIv);
+  render();
+}
+function startWorkout(i) {
+  state.wIdx = i; state.exIdx = 0; state.setIdx = 0;
+  state.phase = "work"; state.running = true; state.view = "play";
+  try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(l => wakeLock = l).catch(() => {}); } catch (e) {}
+  enterPhase(); render();
+}
+function exitWorkout() {
+  clearInterval(tickIv);
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  try { speechSynthesis.cancel(); } catch (e) {}
+  state.view = "home"; render();
+}
+function toggleSound(key) {
+  state.sound[key] = !state.sound[key];
+  localStorage.setItem(LS_SOUND, JSON.stringify(state.sound));
+  if (key === "voice" && state.sound.voice) speak("Voice on.");
+  render();
+}
+
+/* ---------- views ---------- */
+function render() {
+  if (state.view === "setup") return renderSetup();
+  if (state.view === "home") return renderHome();
+  if (state.view === "play") return renderPlay();
+}
+
+function renderSetup() {
+  const saved = localStorage.getItem(LS_URL) || "";
+  $app.innerHTML = `
+    <div style="margin:10px 0 22px">
+      <div class="eyebrow">Google Sheet powered</div>
+      <div class="display" style="font-size:42px;font-weight:700;line-height:1">Workout Player</div>
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="margin-bottom:8px">Connect your sheet</div>
+      <div class="help">
+        <ol>
+          <li>Create a Google Sheet with columns: <b>Workout, Exercise, Sets, Reps, Weight, WorkTime, RestSet, RestAfter, Note</b> (one row per exercise). Or import the CSV template.</li>
+          <li>In Sheets: <b>File → Share → Publish to web</b>, pick the tab, choose <b>Comma-separated values (.csv)</b>, publish, copy the link.</li>
+          <li>Paste it below.</li>
+        </ol>
+      </div>
+      <input class="input" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv" value="${esc(saved)}">
+      <button class="btn btn-start" style="width:100%;margin-top:12px" onclick="onConnect()">
+        ${state.loading ? "Loading…" : "Load workouts"}
+      </button>
+      ${state.error ? `<div class="err">${esc(state.error)}</div>` : ""}
+      <div class="muted" style="margin-top:10px">Note: Google caches the published CSV for ~5 minutes, so sheet edits take a few minutes to appear here.</div>
+    </div>`;
+}
+window.onConnect = () => {
+  const url = document.getElementById("sheetUrl").value.trim();
+  if (!url) { state.error = "Paste the published CSV link first."; return render(); }
+  loadSheet(url);
+};
+
+function renderHome() {
+  $app.innerHTML = `
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">Your program</div>
+        <div class="display" style="font-size:38px;font-weight:700;line-height:1">Workouts</div>
+      </div>
+      <button class="btn btn-ghost" onclick="onRefresh()">↻ Refresh</button>
+    </div>
+    ${state.error ? `<div class="err" style="margin-bottom:10px">${esc(state.error)}</div>` : ""}
+    ${state.workouts.map((w, i) => `
+      <div class="card">
+        <div class="card-title">${esc(w.name)}</div>
+        <div class="card-sub">${w.exercises.length} exercises · ~${estMin(w)} min</div>
+        <div style="color:var(--ink-dim);font-size:14px;margin:10px 0 14px;line-height:1.5">
+          ${w.exercises.map(e => esc(e.name)).join(" · ")}
+        </div>
+        <button class="btn btn-start" onclick="startWorkout(${i})">▶ Start</button>
+      </div>`).join("")}
+    <button class="btn btn-ghost" style="width:100%;padding:14px" onclick="onChangeSheet()">⚙ Change sheet</button>
+    ${state.fetchedAt ? `<div class="muted" style="text-align:center;margin-top:10px">Loaded ${state.fetchedAt.toLocaleTimeString()}</div>` : ""}`;
+}
+window.onRefresh = () => loadSheet(localStorage.getItem(LS_URL));
+window.onChangeSheet = () => { state.view = "setup"; state.error = ""; render(); };
+window.startWorkout = startWorkout;
+
+function renderPlay() {
+  const w = curW(), e = curE();
+  const totalSets = w.exercises.reduce((a, x) => a + x.sets, 0);
+  const doneSets = w.exercises.slice(0, state.exIdx).reduce((a, x) => a + x.sets, 0)
+    + state.setIdx + (state.phase === "rest" ? 1 : 0);
+
+  let band;
+  if (state.phase === "done") {
+    band = `
+      <div class="band done">
+        <div class="eyebrow" style="color:var(--go)">Workout complete</div>
+        <div class="exname" style="margin:14px 0">Well done 💪</div>
+        <div style="color:var(--ink-dim)">${totalSets} sets finished.</div>
+        <button class="btn btn-start" style="margin-top:20px" onclick="exitWorkout()">Back to workouts</button>
+      </div>`;
+  } else {
+    const isWork = state.phase === "work";
+    const plates = Array.from({ length: e.sets }).map((_, i) => {
+      const d = i < state.setIdx || (i === state.setIdx && state.phase === "rest");
+      const c = i === state.setIdx && isWork;
+      return `<div class="plate ${d ? "donep" : ""} ${c ? "current" : ""}"></div>`;
+    }).join("");
+    const lastSet = state.setIdx >= e.sets - 1;
+    const nx = lastSet ? w.exercises[state.exIdx + 1] : null;
+    const nextUp = !isWork
+      ? (lastSet ? (nx ? "Next: " + esc(nx.name) : "") : esc(e.name) + " · set " + (state.setIdx + 2) + " of " + e.sets)
+      : "";
+    band = `
+      <div class="band ${state.phase}">
+        <div class="eyebrow" style="color:var(--${isWork ? "work" : "rest"})">
+          ${isWork ? "Work" : "Rest"} · Exercise ${state.exIdx + 1} of ${w.exercises.length}
+        </div>
+        <div class="exname">${esc(e.name)}</div>
+        ${e.note ? `<div class="note">${esc(e.note)}</div>` : ""}
+        <div class="plates">${plates}</div>
+        ${isWork ? `
+          <div class="stat-row">
+            <div class="stat"><b>${state.setIdx + 1}/${e.sets}</b><span>Set</span></div>
+            <div class="stat"><b>${esc(repsFor(e.reps, state.setIdx))}</b><span>Reps</span></div>
+            <div class="stat"><b>${e.weight ? esc(e.weight) + " kg" : "—"}</b><span>Weight</span></div>
+          </div>
+          ${e.workTime > 0 ? `<div class="timer" id="timer">${fmt(state.remaining)}</div>` : ""}
+          <button class="btn donebtn" onclick="skip()">✓ Done — set ${state.setIdx + 1}</button>
+        ` : `
+          <div class="timer" id="timer">${fmt(state.remaining)}</div>
+          ${nextUp ? `<div style="color:var(--ink-dim);margin-top:10px;font-size:15px">${nextUp}</div>` : ""}
+          <button class="btn skiprest" onclick="skip()">Skip rest →</button>
+        `}
+      </div>`;
+  }
+
+  $app.innerHTML = `
+    <div class="topbar">
+      <button class="btn btn-ghost" onclick="exitWorkout()">✕ Exit</button>
+      <div class="eyebrow">${esc(w.name)}</div>
+      <div class="eyebrow" style="font-variant-numeric:tabular-nums">${Math.min(doneSets, totalSets)}/${totalSets} sets</div>
+    </div>
+    ${band}
+    ${state.phase !== "done" ? `
+      <div class="controls">
+        <button class="btn btn-ghost" onclick="goBack()">← Back</button>
+        <button class="btn btn-ghost" style="${state.running ? "" : "color:var(--amber);border-color:var(--amber)"}" onclick="togglePause()">
+          ${state.running ? "❚❚ Pause" : "▶ Resume"}
+        </button>
+        <button class="btn btn-ghost" onclick="skip()">Skip →</button>
+      </div>
+      <div class="controls" style="margin-top:10px">
+        <button class="btn btn-ghost ${state.sound.beeps ? "on" : ""}" onclick="toggleSound('beeps')">🔔 Beeps ${state.sound.beeps ? "on" : "off"}</button>
+        <button class="btn btn-ghost ${state.sound.voice ? "on" : ""}" onclick="toggleSound('voice')">🗣 Voice ${state.sound.voice ? "on" : "off"}</button>
+      </div>` : ""}`;
+}
+window.exitWorkout = exitWorkout;
+window.goBack = goBack;
+window.skip = skip;
+window.togglePause = togglePause;
+window.toggleSound = toggleSound;
+
+/* ---------- boot ---------- */
+(function init() {
+  const url = localStorage.getItem(LS_URL);
+  if (url) loadSheet(url); else render();
+})();
+</script>
+</body>
+</html>
