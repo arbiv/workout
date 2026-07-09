@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loadSampleWorkouts } = require('./helpers');
+const { loadSampleWorkouts, SAMPLE_CSV_URL } = require('./helpers');
 
 test.describe('Setup', () => {
   test('shows the connect-your-sheet screen with instructions', async ({ page }) => {
@@ -31,5 +31,11 @@ test.describe('Setup', () => {
       .toContainText('4 exercises');
     await expect(page.locator('.card', { hasText: 'Test · Long session' }).locator('.card-sub'))
       .toContainText('2 exercises');
+  });
+
+  test('loads the sheet straight from a ?csv= query parameter', async ({ page }) => {
+    await page.goto('/?csv=' + encodeURIComponent(SAMPLE_CSV_URL));
+    await expect(page.locator('.card')).toHaveCount(3);
+    await expect(page.locator('#sheetUrl')).not.toBeVisible();
   });
 });

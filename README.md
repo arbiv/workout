@@ -5,6 +5,11 @@ Google Sheet (or any hosted CSV). Open `index.html`, paste a published CSV
 link, and it turns each row into a set/rest/exercise sequence with voice
 cues and beeps.
 
+You can also skip the paste step by passing the CSV link as a `csv` query
+parameter, e.g. `index.html?csv=https://docs.google.com/.../pub?output=csv` —
+the app loads it directly on boot and remembers it for next time, just like
+pasting it into the setup screen.
+
 CSV columns (row 1 headers, case-insensitive): `Workout, Exercise, Sets,
 Reps, Weight, WorkTime, RestSet, RestAfter, Note`.
 

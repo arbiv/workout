@@ -416,7 +416,8 @@ window.toggleSound = toggleSound;
 
 /* ---------- boot ---------- */
 (function init() {
-  const url = localStorage.getItem(LS_URL);
+  const csvParam = new URLSearchParams(location.search).get("csv");
+  const url = csvParam || localStorage.getItem(LS_URL);
   if (url) loadSheet(url); else render();
 })();
 </script>
