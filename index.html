@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Workout Player</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -415,7 +416,8 @@ window.toggleSound = toggleSound;
 
 /* ---------- boot ---------- */
 (function init() {
-  const url = localStorage.getItem(LS_URL);
+  const csvParam = new URLSearchParams(location.search).get("csv");
+  const url = csvParam || localStorage.getItem(LS_URL);
   if (url) loadSheet(url); else render();
 })();
 </script>
