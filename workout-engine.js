@@ -26,6 +26,14 @@
     return p.length ? p[Math.min(i, p.length - 1)] : "—";
   }
 
+  function deriveEditUrl(url) {
+    if (!url) return null;
+    const m = String(url).match(/\/spreadsheets\/d\/([^/]+)\//);
+    if (!m || m[1] === "e") return null;
+    const gidMatch = String(url).match(/[?&#]gid=(\d+)/);
+    return `https://docs.google.com/spreadsheets/d/${m[1]}/edit` + (gidMatch ? `#gid=${gidMatch[1]}` : "");
+  }
+
   function estMin(w) {
     let t = 0;
     for (const e of w.exercises)
@@ -88,5 +96,5 @@
     return ws;
   }
 
-  return { esc, fmt, repsFor, estMin, parseCSV, rowsToWorkouts };
+  return { esc, fmt, repsFor, estMin, parseCSV, rowsToWorkouts, deriveEditUrl };
 });
