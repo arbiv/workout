@@ -117,6 +117,7 @@ const $app = document.getElementById("app");
 const LS_URL = "wp-sheet-url";
 const LS_SOUND = "wp-sound";
 const LS_CACHE = "wp-cache";
+const LS_EDIT_URL = "wp-edit-url";
 
 let state = {
   view: "setup",           // setup | home | play
@@ -301,6 +302,7 @@ function render() {
 
 function renderSetup() {
   const saved = localStorage.getItem(LS_URL) || "";
+  const savedEdit = localStorage.getItem(LS_EDIT_URL) || "";
   $app.innerHTML = `
     <div style="margin:10px 0 22px">
       <div class="eyebrow">Google Sheet powered</div>
@@ -321,16 +323,24 @@ function renderSetup() {
       </button>
       ${state.error ? `<div class="err">${esc(state.error)}</div>` : ""}
       <div class="muted" style="margin-top:10px">Note: Google caches the published CSV for ~5 minutes, so sheet edits take a few minutes to appear here.</div>
+      <div class="eyebrow" style="margin-top:18px">Edit link (optional)</div>
+      <div class="muted" style="margin:4px 0 8px">
+        Publish-to-web links can't be turned back into a real edit link. Paste the sheet's normal edit URL here (the one in your browser's address bar when editing) and we'll show an "Edit sheet" link on the home screen.
+      </div>
+      <input class="input" id="editUrl" placeholder="https://docs.google.com/spreadsheets/d/…/edit" value="${esc(savedEdit)}">
     </div>`;
 }
 window.onConnect = () => {
   const url = document.getElementById("sheetUrl").value.trim();
   if (!url) { state.error = "Paste the published CSV link first."; return render(); }
+  const editUrl = document.getElementById("editUrl").value.trim();
+  if (editUrl) localStorage.setItem(LS_EDIT_URL, editUrl);
+  else localStorage.removeItem(LS_EDIT_URL);
   loadSheet(url);
 };
 
 function renderHome() {
-  const editUrl = deriveEditUrl(localStorage.getItem(LS_URL));
+  const editUrl = deriveEditUrl(localStorage.getItem(LS_URL)) || localStorage.getItem(LS_EDIT_URL);
   $app.innerHTML = `
     <div class="topbar">
       <div>
