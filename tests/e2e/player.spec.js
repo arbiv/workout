@@ -35,6 +35,21 @@ test.describe('Player · Test · Quick run', () => {
     await expect(page.locator('.stat b').first()).toHaveText('1/2');
   });
 
+  test('workout overview lists every exercise and highlights the current one', async ({ page }) => {
+    const rows = page.locator('.ov-row');
+    await expect(rows).toHaveCount(3);
+    await expect(page.locator('.ov-row.current .ov-name')).toHaveText('Rep Based Exercise');
+    await expect(page.locator('.ov-row.current .ov-meta')).toHaveText('Set 1/2');
+    await expect(page.locator('.ov-row.done')).toHaveCount(0);
+
+    // Finish Rep Based Exercise entirely (2 sets) and land on Timed Exercise.
+    await advanceSteps(page, 4);
+    await expect(page.locator('.ov-row.done')).toHaveCount(1);
+    await expect(page.locator('.ov-row.done .ov-name')).toHaveText('Rep Based Exercise');
+    await expect(page.locator('.ov-row.current .ov-name')).toHaveText('Timed Exercise');
+    await expect(page.locator('.ov-row.current .ov-meta')).toHaveText('Set 1/2');
+  });
+
   test('rest between sets previews the upcoming set\'s reps, not the one just finished', async ({ page }) => {
     // Reach Pyramid Reps (8,6,4 across 3 sets) and finish its first set.
     await advanceSteps(page, 9);
