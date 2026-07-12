@@ -66,6 +66,8 @@ body {
 .controls { display: flex; gap: 10px; margin-top: 14px; }
 .controls .btn { flex: 1; padding: 14px 0; font-size: 16px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 10px; }
+.topbar-actions { display: flex; gap: 8px; }
+.topbar-actions .btn-ghost { text-decoration: none; display: inline-flex; align-items: center; }
 .note { font-size: 14px; color: var(--amber); margin-top: 8px; }
 .input {
   width: 100%; background: var(--surface2); color: var(--ink);
@@ -93,7 +95,7 @@ body {
    they can be unit tested without a browser.
    ============================================================= */
 
-const { esc, fmt, repsFor, estMin, parseCSV, rowsToWorkouts } = WorkoutEngine;
+const { esc, fmt, repsFor, estMin, parseCSV, rowsToWorkouts, deriveEditUrl } = WorkoutEngine;
 
 const $app = document.getElementById("app");
 const LS_URL = "wp-sheet-url";
@@ -312,13 +314,17 @@ window.onConnect = () => {
 };
 
 function renderHome() {
+  const editUrl = deriveEditUrl(localStorage.getItem(LS_URL));
   $app.innerHTML = `
     <div class="topbar">
       <div>
         <div class="eyebrow">Your program</div>
         <div class="display" style="font-size:38px;font-weight:700;line-height:1">Workouts</div>
       </div>
-      <button class="btn btn-ghost" onclick="onRefresh()">↻ Refresh</button>
+      <div class="topbar-actions">
+        ${editUrl ? `<a class="btn btn-ghost" href="${esc(editUrl)}" target="_blank" rel="noopener">✎ Edit sheet</a>` : ""}
+        <button class="btn btn-ghost" onclick="onRefresh()">↻ Refresh</button>
+      </div>
     </div>
     ${state.error ? `<div class="err" style="margin-bottom:10px">${esc(state.error)}</div>` : ""}
     ${state.workouts.map((w, i) => `

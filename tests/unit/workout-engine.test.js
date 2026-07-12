@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { parseCSV, rowsToWorkouts, repsFor, fmt, estMin } = require('../../workout-engine.js');
+const { parseCSV, rowsToWorkouts, repsFor, fmt, estMin, deriveEditUrl } = require('../../workout-engine.js');
 
 const sampleCsv = fs.readFileSync(
   path.join(__dirname, '..', '..', 'testdata', 'workout-sample.csv'),
@@ -103,4 +103,31 @@ test('estMin estimates total minutes from sets, work time, and rest', () => {
     ],
   };
   assert.equal(estMin(workout), Math.round((98 + 75) / 60));
+});
+
+test('deriveEditUrl builds an edit link from a direct export URL', () => {
+  assert.equal(
+    deriveEditUrl('https://docs.google.com/spreadsheets/d/1AbCdEfG/export?format=csv&gid=123456'),
+    'https://docs.google.com/spreadsheets/d/1AbCdEfG/edit#gid=123456'
+  );
+});
+
+test('deriveEditUrl builds an edit link from a gviz URL without a gid', () => {
+  assert.equal(
+    deriveEditUrl('https://docs.google.com/spreadsheets/d/1AbCdEfG/gviz/tq?tqx=out:csv'),
+    'https://docs.google.com/spreadsheets/d/1AbCdEfG/edit'
+  );
+});
+
+test('deriveEditUrl returns null for a Publish-to-web link (no real doc id)', () => {
+  assert.equal(
+    deriveEditUrl('https://docs.google.com/spreadsheets/d/e/2PACX-1vTestId/pub?output=csv'),
+    null
+  );
+});
+
+test('deriveEditUrl returns null for an unrelated or empty URL', () => {
+  assert.equal(deriveEditUrl('https://example.com/data.csv'), null);
+  assert.equal(deriveEditUrl(''), null);
+  assert.equal(deriveEditUrl(null), null);
 });
