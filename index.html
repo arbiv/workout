@@ -79,6 +79,22 @@ body {
 .help ol { padding-left: 20px; margin: 8px 0; }
 .err { color: var(--work); font-size: 14px; margin-top: 10px; }
 .muted { color: var(--ink-dim); font-size: 13px; }
+.overview { margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+.overview .eyebrow { margin-bottom: 8px; }
+.ov-list { max-height: 230px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.ov-row { display: flex; align-items: center; gap: 10px; padding: 9px 6px; border-radius: 10px; }
+.ov-num {
+  width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0; border: 1.5px solid var(--line); color: var(--ink-dim);
+}
+.ov-row.done .ov-num { background: var(--go); border-color: var(--go); color: #0c1510; }
+.ov-row.current .ov-num { background: var(--amber); border-color: var(--amber); color: #2a1c02; }
+.ov-name { flex: 1; font-size: 15px; }
+.ov-row.done .ov-name { color: var(--ink-dim); }
+.ov-row.current { background: rgba(240,168,50,.12); }
+.ov-row.current .ov-name { color: var(--ink); font-weight: 600; }
+.ov-meta { font-size: 12px; color: var(--ink-dim); flex-shrink: 0; }
+.ov-row.current .ov-meta { color: var(--amber); }
 </style>
 </head>
 <body>
@@ -343,6 +359,25 @@ window.onRefresh = () => loadSheet(localStorage.getItem(LS_URL));
 window.onChangeSheet = () => { state.view = "setup"; state.error = ""; render(); };
 window.startWorkout = startWorkout;
 
+function renderOverview(w) {
+  const rows = w.exercises.map((ex, i) => {
+    const status = i < state.exIdx ? "done" : i === state.exIdx ? "current" : "";
+    const num = status === "done" ? "✓" : i + 1;
+    const meta = status === "current" ? `Set ${state.setIdx + 1}/${ex.sets}` : `${ex.sets} set${ex.sets === 1 ? "" : "s"}`;
+    return `
+      <div class="ov-row ${status}" ${status === "current" ? 'id="ovCurrent"' : ""}>
+        <div class="ov-num">${num}</div>
+        <div class="ov-name">${esc(ex.name)}</div>
+        <div class="ov-meta">${esc(meta)}</div>
+      </div>`;
+  }).join("");
+  return `
+    <div class="overview">
+      <div class="eyebrow">Workout overview</div>
+      <div class="ov-list" id="ovList">${rows}</div>
+    </div>`;
+}
+
 function renderPlay() {
   const w = curW(), e = curE();
   const totalSets = w.exercises.reduce((a, x) => a + x.sets, 0);
@@ -418,7 +453,13 @@ function renderPlay() {
       <div class="controls" style="margin-top:10px">
         <button class="btn btn-ghost ${state.sound.beeps ? "on" : ""}" onclick="toggleSound('beeps')">🔔 Beeps ${state.sound.beeps ? "on" : "off"}</button>
         <button class="btn btn-ghost ${state.sound.voice ? "on" : ""}" onclick="toggleSound('voice')">🗣 Voice ${state.sound.voice ? "on" : "off"}</button>
-      </div>` : ""}`;
+      </div>
+      ${renderOverview(w)}` : ""}`;
+
+  if (state.phase !== "done") {
+    const cur = document.getElementById("ovCurrent");
+    if (cur) cur.scrollIntoView({ block: "nearest" });
+  }
 }
 window.exitWorkout = exitWorkout;
 window.goBack = goBack;
