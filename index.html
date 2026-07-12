@@ -393,6 +393,7 @@ function renderPlay() {
   const totalSets = w.exercises.reduce((a, x) => a + x.sets, 0);
   const doneSets = w.exercises.slice(0, state.exIdx).reduce((a, x) => a + x.sets, 0)
     + state.setIdx + (state.phase === "rest" ? 1 : 0);
+  const editUrl = deriveEditUrl(localStorage.getItem(LS_URL)) || localStorage.getItem(LS_EDIT_URL);
 
   let band;
   if (state.phase === "done") {
@@ -447,7 +448,10 @@ function renderPlay() {
 
   $app.innerHTML = `
     <div class="topbar">
-      <button class="btn btn-ghost" onclick="exitWorkout()">✕ Exit</button>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" onclick="exitWorkout()">✕ Exit</button>
+        ${editUrl ? `<a class="btn btn-ghost" href="${esc(editUrl)}" target="_blank" rel="noopener" title="Edit sheet">✎</a>` : ""}
+      </div>
       <div class="eyebrow">${esc(w.name)}</div>
       <div class="eyebrow" style="font-variant-numeric:tabular-nums">${Math.min(doneSets, totalSets)}/${totalSets} sets</div>
     </div>
