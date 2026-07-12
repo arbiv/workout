@@ -360,37 +360,43 @@ function renderPlay() {
       </div>`;
   } else {
     const isWork = state.phase === "work";
-    const plates = Array.from({ length: e.sets }).map((_, i) => {
-      const d = i < state.setIdx || (i === state.setIdx && state.phase === "rest");
-      const c = i === state.setIdx && isWork;
+    const lastSet = state.setIdx >= e.sets - 1;
+
+    // During rest, show the upcoming set/exercise as the main display so you
+    // can see what's next; during work, show the one you're doing right now.
+    let dispEx, dispSetIdx, dispExNum;
+    if (isWork) {
+      dispEx = e; dispSetIdx = state.setIdx; dispExNum = state.exIdx + 1;
+    } else if (!lastSet) {
+      dispEx = e; dispSetIdx = state.setIdx + 1; dispExNum = state.exIdx + 1;
+    } else {
+      dispEx = w.exercises[state.exIdx + 1]; dispSetIdx = 0; dispExNum = state.exIdx + 2;
+    }
+
+    const plates = Array.from({ length: dispEx.sets }).map((_, i) => {
+      const d = i < dispSetIdx;
+      const c = i === dispSetIdx;
       return `<div class="plate ${d ? "donep" : ""} ${c ? "current" : ""}"></div>`;
     }).join("");
-    const lastSet = state.setIdx >= e.sets - 1;
-    const nx = lastSet ? w.exercises[state.exIdx + 1] : null;
-    const nextUp = !isWork
-      ? (lastSet ? (nx ? "Next: " + esc(nx.name) : "") : esc(e.name) + " · set " + (state.setIdx + 2) + " of " + e.sets)
-      : "";
+
     band = `
       <div class="band ${state.phase}">
         <div class="eyebrow" style="color:var(--${isWork ? "work" : "rest"})">
-          ${isWork ? "Work" : "Rest"} · Exercise ${state.exIdx + 1} of ${w.exercises.length}
+          ${isWork ? "Work" : "Rest"} · Exercise ${dispExNum} of ${w.exercises.length}
         </div>
-        <div class="exname">${esc(e.name)}</div>
-        ${e.note ? `<div class="note">${esc(e.note)}</div>` : ""}
+        <div class="exname">${esc(dispEx.name)}</div>
+        ${dispEx.note ? `<div class="note">${esc(dispEx.note)}</div>` : ""}
         <div class="plates">${plates}</div>
-        ${isWork ? `
-          <div class="stat-row">
-            <div class="stat"><b>${state.setIdx + 1}/${e.sets}</b><span>Set</span></div>
-            <div class="stat"><b>${esc(repsFor(e.reps, state.setIdx))}</b><span>Reps</span></div>
-            <div class="stat"><b>${e.weight ? esc(e.weight) + " kg" : "—"}</b><span>Weight</span></div>
-          </div>
-          ${e.workTime > 0 ? `<div class="timer" id="timer">${fmt(state.remaining)}</div>` : ""}
-          <button class="btn donebtn" onclick="skip()">✓ Done — set ${state.setIdx + 1}</button>
-        ` : `
-          <div class="timer" id="timer">${fmt(state.remaining)}</div>
-          ${nextUp ? `<div style="color:var(--ink-dim);margin-top:10px;font-size:15px">${nextUp}</div>` : ""}
-          <button class="btn skiprest" onclick="skip()">Skip rest →</button>
-        `}
+        <div class="stat-row">
+          <div class="stat"><b>${dispSetIdx + 1}/${dispEx.sets}</b><span>Set</span></div>
+          <div class="stat"><b>${esc(repsFor(dispEx.reps, dispSetIdx))}</b><span>Reps</span></div>
+          <div class="stat"><b>${dispEx.weight ? esc(dispEx.weight) + " kg" : "—"}</b><span>Weight</span></div>
+        </div>
+        ${isWork
+          ? `${e.workTime > 0 ? `<div class="timer" id="timer">${fmt(state.remaining)}</div>` : ""}
+             <button class="btn donebtn" onclick="skip()">✓ Done — set ${state.setIdx + 1}</button>`
+          : `<div class="timer" id="timer">${fmt(state.remaining)}</div>
+             <button class="btn skiprest" onclick="skip()">Skip rest →</button>`}
       </div>`;
   }
 

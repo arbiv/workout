@@ -35,6 +35,16 @@ test.describe('Player · Test · Quick run', () => {
     await expect(page.locator('.stat b').first()).toHaveText('1/2');
   });
 
+  test('rest between sets previews the upcoming set\'s reps, not the one just finished', async ({ page }) => {
+    // Reach Pyramid Reps (8,6,4 across 3 sets) and finish its first set.
+    await advanceSteps(page, 9);
+    await expect(page.locator('.band.rest')).toBeVisible();
+    await expect(page.locator('.exname')).toHaveText('Pyramid Reps');
+    const stats = page.locator('.stat b');
+    await expect(stats.nth(0)).toHaveText('2/3');
+    await expect(stats.nth(1)).toHaveText('6');
+  });
+
   test('toggling beeps and voice flips their on/off state', async ({ page }) => {
     const beeps = page.getByRole('button', { name: /Beeps/ });
     const voice = page.getByRole('button', { name: /Voice/ });
@@ -78,9 +88,12 @@ test.describe('Player · Test · Edge cases', () => {
     await expect(page.locator('.stat b').first()).toHaveText('1/1');
     await expect(page.locator('.plate')).toHaveCount(1);
 
+    // Once its only set is done, rest shows the next exercise coming up
+    // rather than the one that just finished.
     await page.locator('.donebtn').click();
     await expect(page.locator('.band.rest')).toBeVisible();
-    await expect(page.locator('.exname')).toHaveText('Single Set');
+    await expect(page.locator('.exname')).toHaveText('Zero Rest Between Sets');
+    await expect(page.locator('.stat b').first()).toHaveText('1/3');
   });
 
   test('zero rest between sets jumps straight into the next set', async ({ page }) => {
