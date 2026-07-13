@@ -117,6 +117,7 @@ const $app = document.getElementById("app");
 const LS_URL = "wp-sheet-url";
 const LS_SOUND = "wp-sound";
 const LS_CACHE = "wp-cache";
+const LS_EDIT_URL = "wp-edit-url";
 
 let state = {
   view: "setup",           // setup | home | play
@@ -301,6 +302,7 @@ function render() {
 
 function renderSetup() {
   const saved = localStorage.getItem(LS_URL) || "";
+  const savedEdit = localStorage.getItem(LS_EDIT_URL) || "";
   $app.innerHTML = `
     <div style="margin:10px 0 22px">
       <div class="eyebrow">Google Sheet powered</div>
@@ -321,16 +323,24 @@ function renderSetup() {
       </button>
       ${state.error ? `<div class="err">${esc(state.error)}</div>` : ""}
       <div class="muted" style="margin-top:10px">Note: Google caches the published CSV for ~5 minutes, so sheet edits take a few minutes to appear here.</div>
+      <div class="eyebrow" style="margin-top:18px">Edit link (optional)</div>
+      <div class="muted" style="margin:4px 0 8px">
+        Publish-to-web links can't be turned back into a real edit link. Paste the sheet's normal edit URL here (the one in your browser's address bar when editing) and we'll show an "Edit sheet" link on the home screen.
+      </div>
+      <input class="input" id="editUrl" placeholder="https://docs.google.com/spreadsheets/d/…/edit" value="${esc(savedEdit)}">
     </div>`;
 }
 window.onConnect = () => {
   const url = document.getElementById("sheetUrl").value.trim();
   if (!url) { state.error = "Paste the published CSV link first."; return render(); }
+  const editUrl = document.getElementById("editUrl").value.trim();
+  if (editUrl) localStorage.setItem(LS_EDIT_URL, editUrl);
+  else localStorage.removeItem(LS_EDIT_URL);
   loadSheet(url);
 };
 
 function renderHome() {
-  const editUrl = deriveEditUrl(localStorage.getItem(LS_URL));
+  const editUrl = deriveEditUrl(localStorage.getItem(LS_URL)) || localStorage.getItem(LS_EDIT_URL);
   $app.innerHTML = `
     <div class="topbar">
       <div>
@@ -383,6 +393,7 @@ function renderPlay() {
   const totalSets = w.exercises.reduce((a, x) => a + x.sets, 0);
   const doneSets = w.exercises.slice(0, state.exIdx).reduce((a, x) => a + x.sets, 0)
     + state.setIdx + (state.phase === "rest" ? 1 : 0);
+  const editUrl = deriveEditUrl(localStorage.getItem(LS_URL)) || localStorage.getItem(LS_EDIT_URL);
 
   let band;
   if (state.phase === "done") {
@@ -437,7 +448,10 @@ function renderPlay() {
 
   $app.innerHTML = `
     <div class="topbar">
-      <button class="btn btn-ghost" onclick="exitWorkout()">✕ Exit</button>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" onclick="exitWorkout()">✕ Exit</button>
+        ${editUrl ? `<a class="btn btn-ghost" href="${esc(editUrl)}" target="_blank" rel="noopener" title="Edit sheet">✎</a>` : ""}
+      </div>
       <div class="eyebrow">${esc(w.name)}</div>
       <div class="eyebrow" style="font-variant-numeric:tabular-nums">${Math.min(doneSets, totalSets)}/${totalSets} sets</div>
     </div>

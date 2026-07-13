@@ -1,5 +1,16 @@
 const { test, expect } = require('@playwright/test');
-const { loadSampleWorkouts, startWorkoutByName, advanceSteps, clickThroughToEnd } = require('./helpers');
+const { loadSampleWorkouts, startWorkoutByName, advanceSteps, clickThroughToEnd, SAMPLE_CSV_URL } = require('./helpers');
+
+test('an edit link, when configured, also shows as an icon on the player screen', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#sheetUrl', SAMPLE_CSV_URL);
+  await page.fill('#editUrl', 'https://docs.google.com/spreadsheets/d/myRealSheetId/edit');
+  await page.locator('.btn-start').click();
+  await startWorkoutByName(page, 'Test · Quick run');
+  const editLink = page.locator('a[title="Edit sheet"]');
+  await expect(editLink).toBeVisible();
+  await expect(editLink).toHaveAttribute('href', 'https://docs.google.com/spreadsheets/d/myRealSheetId/edit');
+});
 
 test.describe('Player · Test · Quick run', () => {
   test.beforeEach(async ({ page }) => {

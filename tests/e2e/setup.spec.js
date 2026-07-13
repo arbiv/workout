@@ -38,4 +38,20 @@ test.describe('Setup', () => {
     await expect(page.locator('.card')).toHaveCount(3);
     await expect(page.locator('#sheetUrl')).not.toBeVisible();
   });
+
+  test('a manually pasted edit link shows up as an Edit sheet link on the home screen', async ({ page }) => {
+    await page.goto('/');
+    await page.fill('#sheetUrl', SAMPLE_CSV_URL);
+    await page.fill('#editUrl', 'https://docs.google.com/spreadsheets/d/myRealSheetId/edit');
+    await page.locator('.btn-start').click();
+    await expect(page.locator('.card')).toHaveCount(3);
+    const editLink = page.locator('a', { hasText: 'Edit sheet' });
+    await expect(editLink).toBeVisible();
+    await expect(editLink).toHaveAttribute('href', 'https://docs.google.com/spreadsheets/d/myRealSheetId/edit');
+  });
+
+  test('with no manual edit link and no derivable sheet id, no Edit sheet link shows', async ({ page }) => {
+    await loadSampleWorkouts(page);
+    await expect(page.locator('a', { hasText: 'Edit sheet' })).toHaveCount(0);
+  });
 });
