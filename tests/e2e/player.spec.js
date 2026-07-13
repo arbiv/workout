@@ -71,18 +71,24 @@ test.describe('Player · Test · Quick run', () => {
     await expect(stats.nth(1)).toHaveText('6');
   });
 
-  test('toggling beeps and voice flips their on/off state', async ({ page }) => {
-    const beeps = page.getByRole('button', { name: /Beeps/ });
-    const voice = page.getByRole('button', { name: /Voice/ });
-    await expect(beeps).toHaveText('🔔 Beeps on');
-    await expect(voice).toHaveText('🗣 Voice on');
+  test('beeps and voice have independent volume sliders defaulting to 100%', async ({ page }) => {
+    const beepsSlider = page.locator('#beepsVolIcon + .vol-label + .vol-slider');
+    const voiceSlider = page.locator('#voiceVolIcon + .vol-label + .vol-slider');
+    await expect(beepsSlider).toHaveValue('100');
+    await expect(voiceSlider).toHaveValue('100');
+    await expect(page.locator('#beepsVolPct')).toHaveText('100%');
+    await expect(page.locator('#voiceVolPct')).toHaveText('100%');
 
-    await beeps.click();
-    await expect(beeps).toHaveText('🔔 Beeps off');
-    await expect(beeps).not.toHaveClass(/on/);
+    await beepsSlider.fill('40');
+    await expect(page.locator('#beepsVolPct')).toHaveText('40%');
+    await expect(page.locator('#beepsVolIcon')).not.toHaveClass(/vol-muted/);
+    // Voice is untouched — the two controls are independent.
+    await expect(voiceSlider).toHaveValue('100');
 
-    await voice.click();
-    await expect(voice).toHaveText('🗣 Voice off');
+    await voiceSlider.fill('0');
+    await expect(page.locator('#voiceVolPct')).toHaveText('0%');
+    await expect(page.locator('#voiceVolIcon')).toHaveClass(/vol-muted/);
+    await expect(beepsSlider).toHaveValue('40');
   });
 
   test('completing every exercise shows the workout-complete screen', async ({ page }) => {
