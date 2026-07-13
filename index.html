@@ -95,6 +95,24 @@ body {
 .ov-row.current .ov-name { color: var(--ink); font-weight: 600; }
 .ov-meta { font-size: 12px; color: var(--ink-dim); flex-shrink: 0; }
 .ov-row.current .ov-meta { color: var(--amber); }
+.sound-panel { margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+.sound-panel .eyebrow { margin-bottom: 10px; }
+.vol-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.vol-row:last-child { margin-bottom: 0; }
+.vol-icon { font-size: 18px; width: 22px; text-align: center; flex-shrink: 0; }
+.vol-icon.vol-muted { opacity: .35; }
+.vol-label { font-size: 14px; width: 52px; flex-shrink: 0; color: var(--ink-dim); }
+.vol-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: var(--line); outline: none; }
+.vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--go); cursor: pointer; border: 2px solid var(--bg);
+}
+.vol-slider::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--go); cursor: pointer; border: 2px solid var(--bg);
+}
+.vol-slider.rest-tint::-webkit-slider-thumb { background: var(--rest); }
+.vol-slider.rest-tint::-moz-range-thumb { background: var(--rest); }
+.vol-pct { font-size: 13px; width: 36px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; color: var(--ink-dim); }
 </style>
 </head>
 <body>
@@ -119,13 +137,23 @@ const LS_SOUND = "wp-sound";
 const LS_CACHE = "wp-cache";
 const LS_EDIT_URL = "wp-edit-url";
 
+function loadSoundSettings() {
+  const raw = JSON.parse(localStorage.getItem(LS_SOUND) || "null");
+  if (!raw) return { beepsVol: 100, voiceVol: 100 };
+  if (typeof raw.beepsVol === "number" || typeof raw.voiceVol === "number") {
+    return { beepsVol: raw.beepsVol ?? 100, voiceVol: raw.voiceVol ?? 100 };
+  }
+  // Legacy on/off format.
+  return { beepsVol: raw.beeps ? 100 : 0, voiceVol: raw.voice ? 100 : 0 };
+}
+
 let state = {
   view: "setup",           // setup | home | play
   workouts: [],
   fetchedAt: null,
   error: "",
   loading: false,
-  sound: JSON.parse(localStorage.getItem(LS_SOUND) || '{"beeps":true,"voice":true}'),
+  sound: loadSoundSettings(),
   // player
   wIdx: 0, exIdx: 0, setIdx: 0, phase: "work", remaining: 0, running: true,
 };
@@ -134,12 +162,14 @@ let tickIv = null, lastBeep = null, spokeNext = false, wakeLock = null;
 /* ---------- audio ---------- */
 let audioCtx = null;
 function beep(freq = 880, dur = 0.12, vol = 0.25) {
+  if (!state.sound.beepsVol) return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === "suspended") audioCtx.resume();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = "sine"; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    const scaledVol = vol * (state.sound.beepsVol / 100);
+    g.gain.setValueAtTime(scaledVol, audioCtx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
     o.connect(g); g.connect(audioCtx.destination);
     o.start(); o.stop(audioCtx.currentTime + dur);
@@ -147,10 +177,10 @@ function beep(freq = 880, dur = 0.12, vol = 0.25) {
 }
 function speak(text) {
   try {
-    if (!window.speechSynthesis || !state.sound.voice) return;
+    if (!window.speechSynthesis || !state.sound.voiceVol) return;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-US"; u.rate = 1.0;
+    u.lang = "en-US"; u.rate = 1.0; u.volume = state.sound.voiceVol / 100;
     speechSynthesis.speak(u);
   } catch (e) {}
 }
@@ -230,10 +260,10 @@ function restartTick() {
     const beepFrom = state.phase === "rest" ? 5 : 3;
     if (whole <= beepFrom && whole >= 1 && lastBeep !== whole) {
       lastBeep = whole;
-      if (state.sound.beeps) beep(880, 0.1);
+      beep(880, 0.1);
     }
     if (state.remaining <= 0) {
-      if (state.sound.beeps) beep(1320, 0.35, 0.3);
+      beep(1320, 0.35, 0.3);
       clearInterval(tickIv);
       advance();
       return;
@@ -286,11 +316,14 @@ function exitWorkout() {
   try { speechSynthesis.cancel(); } catch (e) {}
   state.view = "home"; render();
 }
-function toggleSound(key) {
-  state.sound[key] = !state.sound[key];
+function setVolume(key, val) {
+  val = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+  state.sound[key] = val;
   localStorage.setItem(LS_SOUND, JSON.stringify(state.sound));
-  if (key === "voice" && state.sound.voice) speak("Voice on.");
-  render();
+  const pct = document.getElementById(key + "Pct");
+  if (pct) pct.textContent = val + "%";
+  const icon = document.getElementById(key + "Icon");
+  if (icon) icon.classList.toggle("vol-muted", val === 0);
 }
 
 /* ---------- views ---------- */
@@ -464,9 +497,22 @@ function renderPlay() {
         </button>
         <button class="btn btn-ghost" onclick="skip()">Skip →</button>
       </div>
-      <div class="controls" style="margin-top:10px">
-        <button class="btn btn-ghost ${state.sound.beeps ? "on" : ""}" onclick="toggleSound('beeps')">🔔 Beeps ${state.sound.beeps ? "on" : "off"}</button>
-        <button class="btn btn-ghost ${state.sound.voice ? "on" : ""}" onclick="toggleSound('voice')">🗣 Voice ${state.sound.voice ? "on" : "off"}</button>
+      <div class="sound-panel">
+        <div class="eyebrow">Sound</div>
+        <div class="vol-row">
+          <div class="vol-icon ${state.sound.beepsVol === 0 ? "vol-muted" : ""}" id="beepsVolIcon">🔔</div>
+          <div class="vol-label">Beeps</div>
+          <input type="range" class="vol-slider" min="0" max="100" value="${state.sound.beepsVol}"
+            oninput="setVolume('beepsVol', this.value)">
+          <div class="vol-pct" id="beepsVolPct">${state.sound.beepsVol}%</div>
+        </div>
+        <div class="vol-row">
+          <div class="vol-icon ${state.sound.voiceVol === 0 ? "vol-muted" : ""}" id="voiceVolIcon">🗣</div>
+          <div class="vol-label">Voice</div>
+          <input type="range" class="vol-slider rest-tint" min="0" max="100" value="${state.sound.voiceVol}"
+            oninput="setVolume('voiceVol', this.value)">
+          <div class="vol-pct" id="voiceVolPct">${state.sound.voiceVol}%</div>
+        </div>
       </div>
       ${renderOverview(w)}` : ""}`;
 
@@ -479,7 +525,7 @@ window.exitWorkout = exitWorkout;
 window.goBack = goBack;
 window.skip = skip;
 window.togglePause = togglePause;
-window.toggleSound = toggleSound;
+window.setVolume = setVolume;
 
 /* ---------- boot ---------- */
 (function init() {
