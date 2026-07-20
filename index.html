@@ -369,11 +369,11 @@ window.onRefresh = () => loadSheet(localStorage.getItem(LS_URL));
 window.onChangeSheet = () => { state.view = "setup"; state.error = ""; render(); };
 window.startWorkout = startWorkout;
 
-function renderOverview(w) {
+function renderOverview(w, curIdx, curSetIdx) {
   const rows = w.exercises.map((ex, i) => {
-    const status = i < state.exIdx ? "done" : i === state.exIdx ? "current" : "";
+    const status = i < curIdx ? "done" : i === curIdx ? "current" : "";
     const num = status === "done" ? "✓" : i + 1;
-    const meta = status === "current" ? `Set ${state.setIdx + 1}/${ex.sets}` : `${ex.sets} set${ex.sets === 1 ? "" : "s"}`;
+    const meta = status === "current" ? `Set ${curSetIdx + 1}/${ex.sets}` : `${ex.sets} set${ex.sets === 1 ? "" : "s"}`;
     return `
       <div class="ov-row ${status}" ${status === "current" ? 'id="ovCurrent"' : ""}>
         <div class="ov-num">${num}</div>
@@ -396,6 +396,7 @@ function renderPlay() {
   const editUrl = deriveEditUrl(localStorage.getItem(LS_URL)) || localStorage.getItem(LS_EDIT_URL);
 
   let band;
+  let dispExNum, dispSetIdx;
   if (state.phase === "done") {
     band = `
       <div class="band done">
@@ -410,7 +411,7 @@ function renderPlay() {
 
     // During rest, show the upcoming set/exercise as the main display so you
     // can see what's next; during work, show the one you're doing right now.
-    let dispEx, dispSetIdx, dispExNum;
+    let dispEx;
     if (isWork) {
       dispEx = e; dispSetIdx = state.setIdx; dispExNum = state.exIdx + 1;
     } else if (!lastSet) {
@@ -468,7 +469,7 @@ function renderPlay() {
         <button class="btn btn-ghost ${state.sound.beeps ? "on" : ""}" onclick="toggleSound('beeps')">🔔 Beeps ${state.sound.beeps ? "on" : "off"}</button>
         <button class="btn btn-ghost ${state.sound.voice ? "on" : ""}" onclick="toggleSound('voice')">🗣 Voice ${state.sound.voice ? "on" : "off"}</button>
       </div>
-      ${renderOverview(w)}` : ""}`;
+      ${renderOverview(w, dispExNum - 1, dispSetIdx)}` : ""}`;
 
   if (state.phase !== "done") {
     const cur = document.getElementById("ovCurrent");
