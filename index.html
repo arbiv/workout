@@ -4,7 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Workout Player</title>
+<meta name="description" content="A workout timer that turns a published Google Sheet into a set/rest/exercise sequence with voice cues and beeps.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#15171c">
+<!-- Home-screen app metadata: Android/Chrome uses the manifest, iOS/Safari
+     needs these apple-* tags to launch full screen with a proper icon. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Workout">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -42,6 +52,7 @@ body {
 .btn-ghost { background: transparent; color: var(--ink-dim); border: 1px solid var(--line); font-size: 15px; padding: 11px 16px; }
 .btn-ghost:hover { color: var(--ink); }
 .btn-ghost.on { color: var(--go); border-color: var(--go); }
+.btn-install { background: transparent; color: var(--go); border: 1px solid var(--go); width: 100%; padding: 14px; font-size: 16px; }
 .band { border-radius: 20px; padding: 26px 20px 22px; text-align: center; border: 1px solid var(--line); }
 .band.work { background: linear-gradient(180deg, rgba(226,73,59,.16), rgba(226,73,59,.05)); border-color: rgba(226,73,59,.45); }
 .band.rest { background: linear-gradient(180deg, rgba(79,143,217,.16), rgba(79,143,217,.05)); border-color: rgba(79,143,217,.45); }
@@ -118,6 +129,48 @@ const LS_URL = "wp-sheet-url";
 const LS_SOUND = "wp-sound";
 const LS_CACHE = "wp-cache";
 const LS_EDIT_URL = "wp-edit-url";
+
+/* ---------- installable app ----------
+   The service worker precaches the app shell so an installed copy opens
+   (and replays its cached program) with no connection. `beforeinstallprompt`
+   is Chrome/Android's offer to add the app to the home screen — we stash it
+   and surface our own button instead of relying on the browser's mini-infobar.
+   ------------------------------------- */
+let installPrompt = null;
+
+const isStandalone = () =>
+  matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  installPrompt = e;
+  render();
+});
+window.addEventListener("appinstalled", () => { installPrompt = null; render(); });
+
+window.onInstall = async () => {
+  const prompt = installPrompt;
+  if (!prompt) return;
+  installPrompt = null;   // a prompt can only be used once
+  render();
+  try { await prompt.prompt(); } catch (e) {}
+};
+
+// An install button where the browser gives us one, a one-line how-to where
+// it doesn't (Firefox, iOS Safari), and nothing once we're already installed.
+function renderInstall() {
+  if (isStandalone()) return "";
+  if (installPrompt) {
+    return `<button class="btn btn-install" onclick="onInstall()">⤓ Install app</button>`;
+  }
+  return `<div class="muted" style="text-align:center">
+    Want it on your home screen? Open the browser menu and pick <b>Add to Home screen</b>.
+  </div>`;
+}
 
 let state = {
   view: "setup",           // setup | home | play
@@ -328,7 +381,8 @@ function renderSetup() {
         Publish-to-web links can't be turned back into a real edit link. Paste the sheet's normal edit URL here (the one in your browser's address bar when editing) and we'll show an "Edit sheet" link on the home screen.
       </div>
       <input class="input" id="editUrl" placeholder="https://docs.google.com/spreadsheets/d/…/edit" value="${esc(savedEdit)}">
-    </div>`;
+    </div>
+    <div style="margin-top:6px">${renderInstall()}</div>`;
 }
 window.onConnect = () => {
   const url = document.getElementById("sheetUrl").value.trim();
@@ -363,6 +417,7 @@ function renderHome() {
         <button class="btn btn-start" onclick="startWorkout(${i})">▶ Start</button>
       </div>`).join("")}
     <button class="btn btn-ghost" style="width:100%;padding:14px" onclick="onChangeSheet()">⚙ Change sheet</button>
+    <div style="margin-top:10px">${renderInstall()}</div>
     ${state.fetchedAt ? `<div class="muted" style="text-align:center;margin-top:10px">Loaded ${state.fetchedAt.toLocaleTimeString()}</div>` : ""}`;
 }
 window.onRefresh = () => loadSheet(localStorage.getItem(LS_URL));
